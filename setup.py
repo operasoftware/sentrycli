@@ -7,7 +7,7 @@ from sentrycli import __version__
 
 setup(name='sentrycli',
       version=__version__,
-      description='CLI scripts to query and analyze data gatherd by Sentry',
+      description='CLI scripts to query and analyze data gathered by Sentry',
       author='Opera Wrocław Services',
       author_email='svc-code@opera.com',
       url='https://github.com/operasoftware/sentrycli/',
