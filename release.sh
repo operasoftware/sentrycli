@@ -1,5 +1,9 @@
 #!/bin/bash
 # Push package to PyPI
+#
+# 1. Bump version in sentrycli.__init__.py
+# 2. Commit and push to origin
+# 3. ./release.sh
 
 set -e
 set -u
