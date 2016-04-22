@@ -8,7 +8,7 @@ CLI scripts to query and analyze data gathered by [Sentry].
 ### Usage
 It's a two-step process. First issue's events need to be downloaded:
 ```
-> sentrycli query API_KEY 78502 http://errors.services.ams.osa
+> sentrycli query 78502 --api-key API_KEY --host http://errors.services.ams.osa
 INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): errors.services.ams.osa
 INFO:sentrycli.query:API key is fine
 INFO:sentrycli.query:Getting events for issue 78502 (may take a while)
@@ -16,7 +16,7 @@ INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): 
 INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): errors.services.ams.osa
 INFO:sentrycli.query:200 events saved to /Users/mlowicki/projects/sentrycli_sandbox/78502.json
 
-> sentrycli query API_KEY 78502 http://errors.services.ams.osa --since 2016-04-19T10:16:58+00:00
+> sentrycli query 78502 --api-key API_KEY --host http://errors.services.ams.osa --since 2016-04-19T10:16:58+00:00
 INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): errors.services.ams.osa
 INFO:sentrycli.query:API key is fine
 INFO:sentrycli.query:Getting events for issue 78502 (may take a while)
@@ -26,6 +26,8 @@ INFO:sentrycli.query:44 events saved to /Users/mlowicki/projects/sentrycli_sandb
 By default events are stored in JSON file in the current working directory.
 
 API keys are reachable through Sentry's UI - http://HOSTNAME/organizations/ORGANIZATION/api-keys/.
+
+If API key or host aren't specified then last used ones (saved in ~/.sentrycli) will be utilized.
 
 When events are ready we can start analyzing them:
 ```

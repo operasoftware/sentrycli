@@ -7,11 +7,13 @@ import pickle
 import sys
 
 from argh import arg
+from argh.exceptions import CommandError
 from dateutil.parser import parse as datetime_parse
 from dateutil.tz import tzlocal
 import requests
 
 from sentrycli.constants import DEFAULT_API_VERSION
+from sentrycli.preferences import Preferences
 
 
 logging.basicConfig(level=logging.INFO)
@@ -108,9 +110,9 @@ def get_events(url, api_key, limit, since=None, to=None):
 
 
 
-@arg('api-key', help='API key')
 @arg('issue', help='Issue identifier')
-@arg('host', help='Host')
+@arg('--api-key', help='API key')
+@arg('--host', help='Host')
 @arg('--api-version', help='API version')
 @arg('-s', '--since', help="format 'yyyy-mm-dd HH:MM:SS'",
      type=datetime_parse)
@@ -118,9 +120,37 @@ def get_events(url, api_key, limit, since=None, to=None):
 @arg('-o', '--output', help='path to output file')
 @arg('-f', '--format', help='output file format', choices=['json', 'pickle'])
 @arg('-l', '--limit', help='max number of downloaded events')
-def query(api_key, issue, host, api_version=DEFAULT_API_VERSION,
+def query(issue, api_key=None, host=None, api_version=DEFAULT_API_VERSION,
           output=None, format='json', limit=sys.maxint,
           to=datetime.now(tzlocal()), since=None):
+
+    preferences = Preferences()
+
+    if host is None:
+        host = preferences.host
+
+        if host is None:
+            logger.info('Host not found in saved preferences')
+            raise CommandError('Host not specified (--host)')
+        else:
+            logger.info('Host found in saved preferences')
+
+    else:
+        preferences.host = host
+
+    if api_key is None:
+        api_key = preferences.api_key
+
+        if api_key is None:
+            logger.info('API key not found in saved preferences')
+            raise CommandError('API key not specified (--api-key)')
+        else:
+            logger.info('API key found in saved preferences')
+    else:
+        preferences.api_key = api_key
+
+    preferences.save()
+
     if output is None:
         file_name = issue
         file_name += '.' + format
