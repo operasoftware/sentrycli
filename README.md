@@ -3,7 +3,7 @@ CLI scripts to query and analyze data gathered by [Sentry].
 
 ### Installation
 ```
-> pip install sentrycli
+> pip install -U sentrycli
 ```
 ### Usage
 It's a two-step process. First issue's events need to be downloaded:
