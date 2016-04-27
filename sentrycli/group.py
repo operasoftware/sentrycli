@@ -13,6 +13,13 @@ from sentrycli.event import Event
 logging.basicConfig(level=logging.INFO)
 
 
+T_HEADER = 'header'
+T_CONTEXT = 'context'
+T_PARAM = 'param'
+T_VAR = 'var'
+T_TAG = 'tag'
+
+
 def get_keys(prop, events):
     """
     Get all distinct keys from events' property.
@@ -66,30 +73,35 @@ def group(pathname, headers=None, context=None, params=None,
     with open(pathname) as f:
         events = json.load(f)
 
-    events = [Event(event) for event in events]
-
     if len(events) == 0:
         print 'No events to analyze'
+
+    events = [Event(event) for event in events]
 
     if options:
         print_options(events)
         return
 
-    keys = headers or context or params or variables or tags or ctime
+    headers = headers or []
+    context = context or []
+    params = params or []
+    variables = variables or []
+    tags = tags or []
 
-    if keys is None:
+    if not (headers or context or params or variables or tags or ctime):
         raise CommandError('one of headers|params|context|vars|tags|ctime '
                            'has to be specified')
-
-    keys = sorted(keys)
-
-    if [headers, context, params, variables, tags, ctime].count(None) < 5:
-        raise CommandError(
-            'only one of headers|params|context|vars|tags|ctime can be specified')
 
     if ctime is not None:
         group_by_ctime(events, ctime)
         return
+
+    keys = []
+    keys.extend([(T_HEADER, header) for header in headers])
+    keys.extend([(T_CONTEXT, var) for var in context])
+    keys.extend([(T_PARAM, param) for param in params])
+    keys.extend([(T_VAR, var) for var in variables])
+    keys.extend([(T_TAG, tag) for tag in tags])
 
     values = Counter()
 
@@ -97,33 +109,32 @@ def group(pathname, headers=None, context=None, params=None,
         for index, event in enumerate(events):
             meta = {}
 
-            if headers is not None:
-                for header in headers:
-                    meta[header] = event.headers.get(header)
-            elif context is not None:
-                for var in context:
-                    meta[var] = event.context.get(var)
-            elif params is not None:
-                for param in params:
-                    meta[param] = event.params.get(param)
-            elif tags is not None:
-                for tag in tags:
-                    meta[tag] = event.tags.get(tag)
-            else:
-                for var in variables:
-                    for frame in event.frames:
-                        res = frame['vars'].get(var)
+            for header in headers:
+                meta[(T_HEADER, header)] = event.headers.get(header)
 
-                        if res is not None:
-                            meta[var] = res
-                            break
+            for var in context:
+                meta[(T_CONTEXT, var)] = event.context.get(var)
+
+            for param in params:
+                meta[(T_PARAM, param)] = event.params.get(param)
+
+            for tag in tags:
+                meta[(T_TAG, tag)] = event.tags.get(tag)
+
+            for var in variables:
+                for frame in event.frames:
+                    res = frame['vars'].get(var)
+
+                    if res is not None:
+                        meta[(T_VAR, var)] = res
+                        break
 
             value = tuple(meta.get(key) for key in keys)
             values[value] += 1
 
             progress_bar.update(index)
 
-    print_grouping(keys, values)
+    print_grouping([key[1] for key in keys], values)
 
 
 def group_by_ctime(events, mode):
