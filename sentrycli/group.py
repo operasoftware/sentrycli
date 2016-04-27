@@ -13,98 +13,15 @@ from sentrycli.event import Event
 logging.basicConfig(level=logging.INFO)
 
 
-def get_event_headers(event):
+def get_keys(prop, events):
     """
-    Get event's HTTP headers.
-
-    :param event: event to process
-    :type: dict
-    :rtype: dict
-    """
-    for entry in event['entries']:
-        if entry['type'] == 'request':
-            return dict(entry['data']['headers'])
-
-    return {}
-
-
-def get_event_params(event):
-    """
-    Get event message's parameters.
-
-    :param event: event to process.
-    :type: dict
-    :rtype: dict
-    """
-    for entry in event['entries']:
-        if entry['type'] == 'message':
-            return entry['data']
-
-    return {}
-
-
-def get_event_context(event):
-    """
-    Get event's context.
-
-    :param event: event to process
-    :type: dict
-    :rtype: dict
-    """
-    context = event['context'].copy()
-    context.update(event.get('user', {}))
-    return context
-
-
-def get_event_frames(event):
-    """
-    Get event's stack frames.
-
-    :param event: event to process
-    :type: dict
-    :rtype: list
-    """
-    for entry in event['entries']:
-        if entry['type'] == 'exception':
-            # TODO does `entry['data']['values']` have always 1 element?
-            return entry['data']['values'][0]['stacktrace']['frames']
-
-    return []
-
-
-def get_event_vars(event):
-    """
-    Get event's variables from all its stack frames.
-
-    :param event: event to process
-    :type: dict
+    Get all distinct keys from events' property.
     :rtype: set
     """
-    frames = get_event_frames(event)
-    values = set()
-
-    for frame in frames:
-        values |= set(frame.get('vars', []))
-
-    return values
-
-
-def get_event_tags(event):
-    """
-    Get event's tags.
-
-    :param event: event to process
-    :type: dict
-    :rtype: dict
-    """
-    return {tag['key']: tag['value'] for tag in event['tags']}
-
-
-def get_keys(fun, events):
     keys = set()
 
     for event in events:
-        res = fun(event)
+        res = getattr(event, prop)
 
         if res is not None:
             keys |= set(res)
@@ -118,13 +35,13 @@ def print_options(events):
     Print available aggregration options (headers, context, tags etc.)
 
     :param events: list of events from which gather attributes
-    :type: list(dict)
+    :type: list
     """
-    headers = get_keys(get_event_headers, events)
-    context = get_keys(get_event_context, events)
-    params = get_keys(get_event_params, events)
-    variables = get_keys(get_event_vars, events)
-    tags = get_keys(get_event_tags, events)
+    headers = get_keys('headers', events)
+    context = get_keys('context', events)
+    params = get_keys('params', events)
+    variables = get_keys('vars', events)
+    tags = get_keys('tags', events)
 
     table = PrettyTable(['Headers', 'Context', 'Params', 'Vars', 'Tags'])
     table.align = 'l'
@@ -148,6 +65,8 @@ def group(pathname, headers=None, context=None, params=None,
           variables=None, tags=None, options=False, ctime=None):
     with open(pathname) as f:
         events = json.load(f)
+
+    events = [Event(event) for event in events]
 
     if len(events) == 0:
         print 'No events to analyze'
@@ -180,26 +99,19 @@ def group(pathname, headers=None, context=None, params=None,
 
             if headers is not None:
                 for header in headers:
-                    headers = get_event_headers(event)
-                    meta[header] = headers.get(header)
+                    meta[header] = event.headers.get(header)
             elif context is not None:
-                context = get_event_context(event)
-
                 for var in context:
-                    meta[var] = context.get(var)
+                    meta[var] = event.context.get(var)
             elif params is not None:
-                params = get_event_params(event)
-
                 for param in params:
-                    meta[param] = params.get(param)
+                    meta[param] = event.params.get(param)
             elif tags is not None:
-                tags = get_event_tags(event)
-
                 for tag in tags:
-                    meta[tag] = tags.get(tag)
+                    meta[tag] = event.tags.get(tag)
             else:
                 for var in variables:
-                    for frame in get_event_frames(event):
+                    for frame in event.frames:
                         res = frame['vars'].get(var)
 
                         if res is not None:
@@ -226,8 +138,6 @@ def group_by_ctime(events, mode):
     total = 0
 
     for event in events:
-        event = Event(event)
-
         if mode == 'daily':
             day = event.ctime.day
         elif mode == 'monthly':
