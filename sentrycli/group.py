@@ -1,4 +1,5 @@
 from collections import Counter
+from datetime import datetime
 from itertools import izip_longest
 import json
 import logging
@@ -6,6 +7,7 @@ import logging
 from argh import arg, dispatching, CommandError
 from prettytable import PrettyTable
 from progressbar import ProgressBar
+from sentrycli.event import Event
 
 
 logging.basicConfig(level=logging.INFO)
@@ -139,28 +141,36 @@ def print_options(events):
 @arg('--context', help='context', nargs='+')
 @arg('--params', help='params', nargs='+')
 @arg('--variables', help='variables', nargs='+')
+@arg('--ctime', help='creation time', choices=('daily', 'monthly'))
 @arg('--tags', help='tags', nargs='+')
 @arg('-o', '--options', help='list possible grouping options')
 def group(pathname, headers=None, context=None, params=None,
-          variables=None, tags=None, options=False):
+          variables=None, tags=None, options=False, ctime=None):
     with open(pathname) as f:
         events = json.load(f)
+
+    if len(events) == 0:
+        print 'No events to analyze'
 
     if options:
         print_options(events)
         return
 
-    keys = headers or context or params or variables or tags
+    keys = headers or context or params or variables or tags or ctime
 
     if keys is None:
-        raise CommandError('one of headers|params|context|vars|tags '
+        raise CommandError('one of headers|params|context|vars|tags|ctime '
                            'has to be specified')
 
     keys = sorted(keys)
 
-    if [headers, context, params, variables, tags].count(None) < 4:
+    if [headers, context, params, variables, tags, ctime].count(None) < 5:
         raise CommandError(
-            'only one of headers|params|context|vars|tags can be specified')
+            'only one of headers|params|context|vars|tags|ctime can be specified')
+
+    if ctime is not None:
+        group_by_ctime(events, ctime)
+        return
 
     values = Counter()
 
@@ -202,6 +212,51 @@ def group(pathname, headers=None, context=None, params=None,
             progress_bar.update(index)
 
     print_grouping(keys, values)
+
+
+def group_by_ctime(events, mode):
+    """
+    Group events by creation time.
+    :param events: events to group
+    :type: list
+    :param mode: grouping mode (daily or monthly)
+    :type: str
+    """
+    counter = Counter()
+    total = 0
+
+    for event in events:
+        event = Event(event)
+
+        if mode == 'daily':
+            day = event.ctime.day
+        elif mode == 'monthly':
+            day = 1
+
+        key = datetime(event.ctime.year, event.ctime.month, day)
+
+        counter[key] += 1
+        total += 1
+
+    if mode == 'daily':
+        fmt = '%Y-%m-%d'
+        title = 'day'
+    elif mode == 'monthly':
+        fmt = '%Y-%m'
+        title = 'month'
+
+    table = PrettyTable([title, 'count', '%'])
+    total = sum(counter.values())
+
+    for item in sorted(counter.items()):
+        table.add_row((item[0].strftime(fmt),
+                       item[1],
+                       item[1] * 100.0 / total))
+
+    table.align['count'] = 'r'
+    table.align['%'] = 'r'
+    table.float_format['%'] = '.1'
+    print table
 
 
 def print_grouping(attributes, grouping):
