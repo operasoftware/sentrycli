@@ -16,7 +16,7 @@ INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): 
 INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): errors.services.ams.osa
 INFO:sentrycli.query:200 events saved to /Users/mlowicki/projects/sentrycli_sandbox/78502.json
 
-> sentrycli query 78502 --api-key API_KEY --host http://errors.services.ams.osa --since 2016-04-19T10:16:58+00:00
+> sentrycli query 78502 --api-key API_KEY --host http://errors.services.ams.osa --since 2016-04-19
 INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): errors.services.ams.osa
 INFO:sentrycli.query:API key is fine
 INFO:sentrycli.query:Getting events for issue 78502 (may take a while)

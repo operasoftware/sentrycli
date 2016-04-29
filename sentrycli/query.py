@@ -114,9 +114,9 @@ def get_events(url, api_key, limit, since=None, to=None):
 @arg('--api-key', help='API key')
 @arg('--host', help='Host')
 @arg('--api-version', help='API version')
-@arg('-s', '--since', help="format 'yyyy-mm-dd HH:MM:SS'",
+@arg('-s', '--since', help="format 'yyyy-mm-dd(Thh:mm:ss)'",
      type=datetime_parse)
-@arg('-t', '--to', help="format 'yyyy-mm-dd HH:MM:SS'", type=datetime_parse)
+@arg('-t', '--to', help="format 'yyyy-mm-dd(Thh:mm:ss)'", type=datetime_parse)
 @arg('-o', '--output', help='path to output file')
 @arg('-f', '--format', help='output file format', choices=['json', 'pickle'])
 @arg('-l', '--limit', help='max number of downloaded events')
@@ -125,6 +125,12 @@ def query(issue, api_key=None, host=None, api_version=DEFAULT_API_VERSION,
           to=datetime.now(tzlocal()), since=None):
 
     preferences = Preferences()
+
+    if since is not None and since.tzinfo is None:
+        since = since.replace(tzinfo=tzlocal())
+
+    if to.tzinfo is None:
+        to = to.replace(tzinfo=tzlocal())
 
     if host is None:
         host = preferences.host
