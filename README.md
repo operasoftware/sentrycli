@@ -2,6 +2,7 @@
 CLI scripts to query and analyze data gathered by [Sentry].
 
 ### Installation
+Install [pip](https://pip.pypa.io/en/stable/installing/) and run:
 ```
 > pip install -U sentrycli
 ```
