@@ -1,11 +1,13 @@
 # sentrycli
-CLI scripts to query and analyze data gathered by [Sentry].
+CLI tools to query and analyze data gathered by [Sentry].
 
 ### Installation
 Install [pip](https://pip.pypa.io/en/stable/installing/) and run:
 ```
 > pip install -U sentrycli
 ```
+The same command is used to upgrade to the latest version.
+
 ### Usage
 It's a two-step process. First issue's events need to be downloaded:
 ```
@@ -16,8 +18,12 @@ INFO:sentrycli.query:Getting events for issue 78502 (may take a while)
 INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): errors.services.ams.osa
 INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): errors.services.ams.osa
 INFO:sentrycli.query:200 events saved to /Users/mlowicki/projects/sentrycli_sandbox/78502.json
+```
 
-> sentrycli query 78502 --api-key API_KEY --host http://errors.services.ams.osa --since 2016-04-19
+If API key or host aren't specified then last used ones (saved in ~/.sentrycli) will be utilized.
+
+```
+> sentrycli query 78502 --since 2016-04-19
 INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): errors.services.ams.osa
 INFO:sentrycli.query:API key is fine
 INFO:sentrycli.query:Getting events for issue 78502 (may take a while)
@@ -27,8 +33,6 @@ INFO:sentrycli.query:44 events saved to /Users/mlowicki/projects/sentrycli_sandb
 By default events are stored in JSON file in the current working directory.
 
 API keys are reachable through Sentry's UI - http://HOSTNAME/organizations/ORGANIZATION/api-keys/.
-
-If API key or host aren't specified then last used ones (saved in ~/.sentrycli) will be utilized.
 
 When events are ready we can start analyzing them:
 ```
@@ -97,7 +101,7 @@ To get list of avaialble grouping options use `--options` switch:
 ```
 > sentrycli group 76342.json --options
 +-------------------+-------------+--------+-------------------+-------------+
-| Headers           | Extras      | Params | Vars              | Tags        |
+| Headers           | Context     | Params | Vars              | Tags        |
 +-------------------+-------------+--------+-------------------+-------------+
 | Accept-Encoding   | filename    |        | args              | browser     |
 | Accept-Language   | lineno      |        | auth_header       | device      |
