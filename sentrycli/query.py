@@ -155,8 +155,6 @@ def query(issue, api_key=None, host=None, api_version=DEFAULT_API_VERSION,
     else:
         preferences.api_key = api_key
 
-    preferences.save()
-
     if output is None:
         file_name = issue
         file_name += '.' + format

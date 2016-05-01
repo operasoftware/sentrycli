@@ -33,13 +33,28 @@ class Preferences(object):
 
         logger.info('Loaded')
 
+    def _set(self, name, value):
+        """
+        Set specified preference.
+
+        :param name: preference's name
+        :type: str
+        :param value: preference's value
+        :type: anything serializable to JSON
+        """
+        if self._prefs.get(name) == value:
+            return
+
+        self._prefs[name] = value;
+        self.save();
+
     @property
     def host(self):
         return self._prefs.get('host')
 
     @host.setter
     def host(self, host):
-        self._prefs['host'] = host
+        self._set('host', host)
 
     @property
     def api_key(self):
@@ -47,7 +62,7 @@ class Preferences(object):
 
     @api_key.setter
     def api_key(self, api_key):
-        self._prefs['api_key'] = api_key
+        self._set('api_key', api_key)
 
     def save(self):
         logger.info('Saving...')
