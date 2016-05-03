@@ -9,7 +9,13 @@ Install [pip](https://pip.pypa.io/en/stable/installing/) and run:
 The same command is used to upgrade to the latest version.
 
 ### Usage
-It's a two-step process. First issue's events need to be downloaded:
+
+First we need to get issue's identifier which is part of the URL:
+
+![Sentry issue's identifier](https://github.com/operasoftware/sentrycli/blob/master/issue_id.png)
+
+
+Then it's a two-step process. First issue's events need to be downloaded:
 ```
 > sentrycli query 78502 --api-key API_KEY --host http://errors.services.ams.osa
 INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): errors.services.ams.osa
@@ -34,7 +40,7 @@ By default events are stored in JSON file in the current working directory.
 
 API keys are reachable through Sentry's UI - http://HOSTNAME/organizations/ORGANIZATION/api-keys/.
 
-When events are ready we can start analyzing them:
+When events are ready we can start analyzing (grouping) them:
 ```
 > sentrycli group 78502.json --tags server_name
 
