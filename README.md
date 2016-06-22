@@ -1,5 +1,5 @@
 # sentrycli
-CLI tools to query and analyze data gathered by [Sentry].
+CLI tools to query and analyze data gathered by [Sentry]. Introduction to `sentrycli` as guest post on [blog.getsentry.com](https://blog.getsentry.com/2016/06/21/sentry-at-opera.html).
 
 ### Installation
 Install [pip](https://pip.pypa.io/en/stable/installing/) and run:
