@@ -1,14 +1,14 @@
+import logging
+import re
 from collections import Counter
 from datetime import datetime
 from itertools import izip_longest
-import json
-import logging
 
-from argh import arg, dispatching, CommandError
-from prettytable import PrettyTable
-from progressbar import ProgressBar
-from sentrycli.event import Event
+from argh import arg
 
+from sentrycli.event import load_from_file
+from sentrycli.table import Table
+from sentrycli.utils import check_required_keys_present
 
 logging.basicConfig(level=logging.INFO)
 
@@ -18,6 +18,7 @@ T_CONTEXT = 'context'
 T_PARAM = 'param'
 T_VAR = 'var'
 T_TAG = 'tag'
+ORDER_META_KEY = ('breadcrumb', 'breadcrumbs in order')
 
 
 def get_keys(prop, events):
@@ -50,12 +51,10 @@ def print_options(events):
     variables = get_keys('vars', events)
     tags = get_keys('tags', events)
 
-    table = PrettyTable(['Headers', 'Context', 'Params', 'Vars', 'Tags'])
-    table.align = 'l'
+    table = Table(['Headers', 'Context', 'Params', 'Vars', 'Tags'])
 
-    for header, context_var, param, var, tag in izip_longest(
-            headers, context, params, variables, tags, fillvalue=''):
-        table.add_row((header, context_var, param, var, tag))
+    map(table.add_row, izip_longest(headers, context, params, variables, tags,
+                                    fillvalue=''))
 
     print table
 
@@ -66,31 +65,32 @@ def print_options(events):
 @arg('--params', help='params', nargs='+')
 @arg('--variables', help='variables', nargs='+')
 @arg('--ctime', help='creation time', choices=('daily', 'monthly'))
+@arg('--breadcrumbs', nargs='+',
+     help='analyze if events order of breadcrumbs categories is fullfiled. '
+          'Order should be in Python regex format. Use `.*` for any number of'
+          'categories between and ` ` for strict order.')
 @arg('--tags', help='tags', nargs='+')
+@arg('--top', type=int, help='show only top x results')
 @arg('-o', '--options', help='list possible grouping options')
-def group(pathname, headers=None, context=None, params=None,
-          variables=None, tags=None, options=False, ctime=None):
-    with open(pathname) as f:
-        events = json.load(f)
+def group(pathname, headers=None, context=None, params=None, breadcrumbs=None,
+          variables=None, tags=None, options=False, ctime=None, top=None):
 
-    if len(events) == 0:
-        print 'No events to analyze'
-
-    events = [Event(event) for event in events]
+    events = load_from_file(pathname)
 
     if options:
         print_options(events)
         return
+
+    check_required_keys_present([
+        'headers', 'context', 'params', 'variables', 'tags', 'ctime',
+        'breadcrumbs'], locals())
 
     headers = headers or []
     context = context or []
     params = params or []
     variables = variables or []
     tags = tags or []
-
-    if not (headers or context or params or variables or tags or ctime):
-        raise CommandError('one of headers|params|context|vars|tags|ctime '
-                           'has to be specified')
+    breadcrumbs = [re.compile(breadcrumb) for breadcrumb in breadcrumbs or []]
 
     if ctime is not None:
         group_by_ctime(events, ctime)
@@ -103,38 +103,47 @@ def group(pathname, headers=None, context=None, params=None,
     keys.extend([(T_VAR, var) for var in variables])
     keys.extend([(T_TAG, tag) for tag in tags])
 
+    if len(breadcrumbs):
+        keys.extend([ORDER_META_KEY])
+
     values = Counter()
 
-    with ProgressBar(maxval=len(events)) as progress_bar:
-        for index, event in enumerate(events):
-            meta = {}
+    for event in events:
+        meta = {}
 
-            for header in headers:
-                meta[(T_HEADER, header)] = event.headers.get(header)
+        for header in headers:
+            meta[(T_HEADER, header)] = event.headers.get(header)
 
-            for var in context:
-                meta[(T_CONTEXT, var)] = event.context.get(var)
+        for var in context:
+            meta[(T_CONTEXT, var)] = event.context.get(var)
 
-            for param in params:
-                meta[(T_PARAM, param)] = event.params.get(param)
+        for param in params:
+            meta[(T_PARAM, param)] = event.params.get(param)
 
-            for tag in tags:
-                meta[(T_TAG, tag)] = event.tags.get(tag)
+        for tag in tags:
+            meta[(T_TAG, tag)] = event.tags.get(tag)
 
-            for var in variables:
-                for frame in event.frames:
-                    res = frame['vars'].get(var)
+        for var in variables:
+            for frame in event.frames:
+                res = frame['vars'].get(var)
 
-                    if res is not None:
-                        meta[(T_VAR, var)] = res
-                        break
+                if res is not None:
+                    meta[(T_VAR, var)] = res
+                    break
 
-            value = tuple(meta.get(key) for key in keys)
-            values[value] += 1
+        if len(breadcrumbs):
+            meta[ORDER_META_KEY] = False
 
-            progress_bar.update(index)
+            for breadcrumb in breadcrumbs:
+                if not event.is_breadcrumbs_order_preserved(breadcrumb):
+                    break
+            else:
+                meta[ORDER_META_KEY] = True
 
-    print_grouping([key[1] for key in keys], values)
+        value = tuple(meta.get(key) for key in keys)
+        values[value] += 1
+
+    print_grouping([key[1] for key in keys], values, top)
 
 
 def group_by_ctime(events, mode):
@@ -166,7 +175,7 @@ def group_by_ctime(events, mode):
         fmt = '%Y-%m'
         title = 'month'
 
-    table = PrettyTable([title, 'count', '%'])
+    table = Table([title, 'count', '%'])
     total = sum(counter.values())
 
     for item in sorted(counter.items()):
@@ -174,31 +183,23 @@ def group_by_ctime(events, mode):
                        item[1],
                        item[1] * 100.0 / total))
 
-    table.align['count'] = 'r'
-    table.align['%'] = 'r'
-    table.float_format['%'] = '.1'
     print table
 
 
-def print_grouping(attributes, grouping):
+def print_grouping(attributes, grouping, top):
     """
     Print computed groups.
 
     :param attributes: list of grouped attributes
     :type: list(str)
-    :param values: counter for each combination of attributes' values
+    :param grouping: counter for each combination of attributes' values
     :type: Counter
+    :type top: int
     """
-    table = PrettyTable(attributes + ['count', '%'])
-    table.align = 'l'
-    table.align['count'] = 'r'
-    table.align['%'] = 'r'
-    table.float_format['%'] = '.1'
-
     total = sum(grouping.values())
 
-    for keys, count in grouping.items():
-        table.add_row(keys + (count, count * 100.0 / total))
+    table = Table(attributes + ['count', '%'])
+    table.add_rows(total, grouping.most_common(top))
 
-    print '\n', table.get_string(sortby='count', reversesort=True)
+    print '\n' + table.by_count()
     print 'Total:', total

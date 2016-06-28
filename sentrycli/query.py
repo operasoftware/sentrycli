@@ -109,7 +109,6 @@ def get_events(url, api_key, limit, since=None, to=None):
     return events
 
 
-
 @arg('issue', help='Issue identifier')
 @arg('--api-key', help='API key')
 @arg('--host', help='Host')
