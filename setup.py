@@ -18,9 +18,8 @@ setup(name='sentrycli',
       packages=['sentrycli'],
       install_requires=['argh==0.26.1',
                         'cached-property==1.2.0',
-                        'progressbar2==2.7.3',
                         'prettytable==0.7.2',
-                        'requests==2.9.1',
+                        'requests>2,<3',
                         'python-dateutil==2.5.0'],
       entry_points={'console_scripts': [
         'sentrycli = sentrycli.main:main']

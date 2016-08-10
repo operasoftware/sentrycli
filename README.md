@@ -43,7 +43,6 @@ API keys are reachable through Sentry's UI - http://HOSTNAME/organizations/ORGAN
 When events are ready we can start analyzing (grouping) them:
 ```
 > sentrycli group 78502.json --tags server_name
-
 +----------------------+-------+------+
 | server_name          | count |    % |
 +----------------------+-------+------+
@@ -55,7 +54,6 @@ When events are ready we can start analyzing (grouping) them:
 Total: 44
 
 > sentrycli group 78502.json --headers Content-Type
-
 +--------------------------+-------+-------+
 | Content-Type             | count |     % |
 +--------------------------+-------+-------+
@@ -64,7 +62,6 @@ Total: 44
 Total: 44
 
 > sentrycli group 78502.json --tags server_name release
-
 +---------+----------------------+-------+------+
 | release | server_name          | count |    % |
 +---------+----------------------+-------+------+
@@ -75,7 +72,6 @@ Total: 44
 +---------+----------------------+-------+------+
 
 > sentrycli group 77268.json --header User-Agent Host --tag logger
-
 +------------+----------------+---------------------+-------+-------+
 | User-Agent | Host           | logger              | count |     % |
 +------------+----------------+---------------------+-------+-------+
@@ -101,9 +97,49 @@ Total: 44
 | 2016-04-21 |    12 |  5.2 |
 | 2016-04-22 |    19 |  8.2 |
 +------------+-------+------+
+
+> sentrycli group 41384.json --breadcrumbs "requests.*sync.commit" --tags server_name
++----------------------+----------------------+-------+------+
+| server_name          | breadcrumbs in order | count |    % |
++----------------------+----------------------+-------+------+
+| front1.sync.ams.osa  | False                |   143 | 13.3 |
+| front6.sync.ams.osa  | False                |   132 | 12.3 |
+| front6.sync.lati.osa | False                |   122 | 11.4 |
+| front5.sync.ams.osa  | False                |   109 | 10.2 |
+| front1.sync.lati.osa | False                |   101 |  9.4 |
+| front2.sync.ams.osa  | False                |   100 |  9.3 |
+| front3.sync.ams.osa  | False                |    90 |  8.4 |
+| front4.sync.ams.osa  | False                |    86 |  8.0 |
+| front3.sync.lati.osa | False                |    84 |  7.8 |
+| front4.sync.lati.osa | False                |    49 |  4.6 |
+| front2.sync.lati.osa | False                |    29 |  2.7 |
+| front5.sync.lati.osa | False                |    27 |  2.5 |
+| front1.sync.ams.osa  | True                 |     1 |  0.1 |
++----------------------+----------------------+-------+------+
+
+
+> sentrycli breadcrumbs 41384.json -a requests:data.status_code
++----------------------------------+-------+------+
+| ('requests', 'data.status_code') | count |    % |
++----------------------------------+-------+------+
+| <NOT PRESENT>                    |  1072 | 99.9 |
+| 200                              |     1 |  0.1 |
++----------------------------------+-------+------+
+
+> sentrycli breadcrumbs 41384.json -a requests:data.status_code sync.commit:data.mobile
+
++----------------------------------+--------------------------------+-------+------+
+| ('requests', 'data.status_code') | ('sync.commit', 'data.mobile') | count |    % |
++----------------------------------+--------------------------------+-------+------+
+| <NOT PRESENT>                    | <NOT PRESENT>                  |   930 | 86.7 |
+| <NOT PRESENT>                    | True                           |    76 |  7.1 |
+| <NOT PRESENT>                    | False                          |    66 |  6.2 |
+| 200                              | True                           |     1 |  0.1 |
++----------------------------------+--------------------------------+-------+------+
 ```
 
-To get list of avaialble grouping options use `--options` switch:
+To get list of available grouping options 
+(in `group` and `breadcrumbs` subcommands) use `--options` switch:
 ```
 > sentrycli group 76342.json --options
 +-------------------+-------------+--------+-------------------+-------------+
@@ -117,6 +153,31 @@ To get list of avaialble grouping options use `--options` switch:
 | Content-Length    | request     |        | callback_kwargs   | release     |
 | Content-Type      | sys.argv    |        | circuitbreaker    | server_name |
 ...
+
+> sentrycli breadcrumbs 41384.json -o
+
++----------------------------------------------------+-------------------------+
+| Categories                                         | Attributes              |
++----------------------------------------------------+-------------------------+
+...
++----------------------------------------------------+-------------------------+
+| requests                                           | data.status_code        |
+|                                                    | level                   |
+|                                                    | event_id                |
+|                                                    | timestamp               |
+|                                                    | data.url                |
+|                                                    | data.reason             |
+|                                                    | message                 |
+|                                                    | type                    |
+|                                                    | data.method             |
++----------------------------------------------------+-------------------------+
+| services_raven.clients.django.ServicesDjangoClient | level                   |
+|                                                    | event_id                |
+|                                                    | timestamp               |
+|                                                    | message                 |
+|                                                    | type                    |
++----------------------------------------------------+-------------------------+
+
 ```
 
 [sentry]: <https://github.com/getsentry/sentry>
