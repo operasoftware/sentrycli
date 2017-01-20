@@ -54,7 +54,9 @@ class Event(object):
         :rtype: dict
         """
         context = self.raw['context'].copy()
-        context.update(self.raw.get('user', {}))
+        user = self.raw.get('user')
+        user = user or {}
+        context.update(user)
         return context
 
     @cached_property
